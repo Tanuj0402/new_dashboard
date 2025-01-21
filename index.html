@@ -159,7 +159,7 @@
                                 <tr>
                                     <th>Week</th>
                                     <th>Calories</th>
-                                    <th>Power</th>
+                                    <th>Power(W)</th>
                                     <th>Duration</th>
                                 </tr>
                             </thead>
@@ -174,7 +174,7 @@
                                 <tr>
                                     <th>Month</th>
                                     <th>Calories</th>
-                                    <th>Power</th>
+                                    <th>Power(W)</th>
                                     <th>Duration</th>
                                 </tr>
                             </thead>
@@ -202,38 +202,42 @@ const generateRandomData = (count, type) => {
     const activities = ['Running', 'Cycling', 'Walking'];
     const data = [];
 
-    let totalCalories = 0;
-    let targetCalories = Math.floor(Math.random()*(3550-3500+1))+3500;
-
     for (let i = 1; i <= count; i++) {
         // Randomly select an activity
         const activity = activities[Math.floor(Math.random() * activities.length)];
-        // Random duration between 30 and 60 minutes
-        const duration = Math.floor(Math.random() * 31) + 30; // Between 30 and 60 minutes
 
-        // Adjust calories and power based on the activity and duration
         let caloriesBurned = 0;
         let powerGenerated = 0;
-        switch (activity) {
-            case 'Running':
-                caloriesBurned = (duration * 12).toFixed(2); // Running burns more calories
-                powerGenerated = (duration * 1.5).toFixed(2); // Running generates more power
-                break;
-            case 'Cycling':
-                caloriesBurned = (duration * 10).toFixed(2); // Cycling burns moderately
-                powerGenerated = (duration * 1.2).toFixed(2); // Cycling generates moderate power
-                break;
-            case 'Walking':
-                caloriesBurned = (duration * 7).toFixed(2); // Walking burns fewer calories
-                powerGenerated = (duration * 0.8).toFixed(2); // Walking generates less power
-                break;
-        }
+        let duration = 0;
 
-        totalCalories += parseFloat(caloriesBurned);
-
-        if (i==count) {
-            const adjustedCalories = targetCalories - (totalCalories - parseFloat(caloriesBurned));
-            caloriesBurned = adjustedCalories.toFixed(2);
+        if (type === 'monthly') {
+            // Monthly values
+            caloriesBurned = Math.floor(Math.random() * (3500 - 3000 + 1)) + 3000; // 3000 to 3500
+            powerGenerated = Math.floor(Math.random() * (1500 - 1000 + 1)) + 1000; // 1000 to 1500
+            duration = Math.floor(Math.random() * (220 - 200 + 1)) + 200; // 200 to 220
+        } else if (type === 'yearly') {
+            // Scale monthly values for yearly
+            caloriesBurned = Math.floor((Math.random() * (3500 - 3000 + 1) + 3000) * 4); // 12x monthly range
+            powerGenerated = Math.floor((Math.random() * (1500 - 1000 + 1) + 1000) * 4); // 12x monthly range
+            duration = Math.floor((Math.random() * (220 - 200 + 1) + 200) * 4); // 12x monthly range
+        } else {
+            // Default for weekly or other cases
+            const randomDuration = Math.floor(Math.random() * 31) + 30; // 30 to 60 mins
+            switch (activity) {
+                case 'Running':
+                    caloriesBurned = (randomDuration * 12).toFixed(2);
+                    powerGenerated = (randomDuration * 1.5).toFixed(2);
+                    break;
+                case 'Cycling':
+                    caloriesBurned = (randomDuration * 10).toFixed(2);
+                    powerGenerated = (randomDuration * 1.2).toFixed(2);
+                    break;
+                case 'Walking':
+                    caloriesBurned = (randomDuration * 7).toFixed(2);
+                    powerGenerated = (randomDuration * 0.8).toFixed(2);
+                    break;
+            }
+            duration = `${randomDuration} `;
         }
 
         const entry = {
@@ -255,10 +259,11 @@ const populateTable = (tableId, data, columns) => {
     const tableBody = document.getElementById(tableId);
     tableBody.innerHTML = '';
     data.forEach((item) => {
-        const row = `<tr>${columns.map(col => `<td>${item[col] || 'N/A'}</td>`).join('')}</tr>`;
+        const row = `<tr>${columns.map((col) => `<td>${item[col] || 'N/A'}</td>`).join('')}</tr>`;
         tableBody.innerHTML += row;
     });
 };
+
 
 // Generate charts
 const generateCharts = (timeRange) => {
@@ -280,6 +285,7 @@ const generateCharts = (timeRange) => {
 
     const labels = dataForCharts.map((item) => item.day || item.week || item.month);
     const caloriesData = dataForCharts.map((item) => parseFloat(item.calories));
+    const powerData = dataForCharts.map((item) => parseFloat(item.power));
 
     // Update Line Chart
     const lineCtx = document.getElementById('progressChart').getContext('2d');
@@ -289,10 +295,10 @@ const generateCharts = (timeRange) => {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Calories Burned',
-                data: caloriesData,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                label: 'Power (W)',
+                data: powerData,
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
                 borderWidth: 2,
                 tension: 0.4
             }]
@@ -301,9 +307,25 @@ const generateCharts = (timeRange) => {
             responsive: true,
             plugins: {
                 legend: { display: true }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Power (W)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                }
             }
         }
     });
+
 
     // Update Doughnut Chart
     const doughnutCtx = document.getElementById('caloriesChart').getContext('2d');
@@ -312,50 +334,74 @@ const generateCharts = (timeRange) => {
         type: 'doughnut',
         data: {
             labels: labels,
-            datasets: [{
-                data: caloriesData,
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.6)',
-                    'rgba(54, 162, 235, 0.6)',
-                    'rgba(255, 206, 86, 0.6)',
-                    'rgba(75, 192, 192, 0.6)',
-                    'rgba(153, 102, 255, 0.6)',
-                    'rgba(255, 159, 64, 0.6)',
-                    'rgba(199, 199, 199, 0.6)'
-                ]
-            }]
+            datasets: [
+                {
+                    data: caloriesData,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(153, 102, 255, 0.6)',
+                        'rgba(255, 159, 64, 0.6)',
+                        'rgba(199, 199, 199, 0.6)',
+                    ],
+                },
+            ],
         },
         options: {
             responsive: true,
             plugins: {
-                legend: { display: true }
-            }
-        }
+                legend: { display: true },
+            },
+        },
     });
 };
+ let currentIndex = 0;
 
 // Fetch data for cards from API
 const fetchCardData = async () => {
     try {
-        const response = await fetch('https://liv1zkehi4.execute-api.us-east-1.amazonaws.com/wattify_api_stage/wattify_data');
+        const response = await fetch('https://2wmb64k4bk.execute-api.us-east-1.amazonaws.com/my_stage/realtime_data_resource');
         const data = await response.json();
-        const responseBody = JSON.parse(data.body);
+        const responseBody = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
 
         if (responseBody && Array.isArray(responseBody) && responseBody.length > 0) {
-            const { power, energy, calories, distance } = responseBody[0];
+            const intervalId = setInterval(() => {
+                // Ensure the index is within bounds
+                if (currentIndex >= responseBody.length) {
+                    clearInterval(intervalId);
+                    console.log('All items processed');
+                    return; // Exit the interval if the index is out of bounds
+                }
 
-            // Update card values
-            document.getElementById('power').innerText = power ? `${power.toFixed(2)} W` : 'N/A';
-            document.getElementById('energy').innerText = energy ? `${energy.toFixed(2)} KJ` : 'N/A';
-            document.getElementById('calories').innerText = calories ? `${calories.toFixed(2)} Kcal` : 'N/A';
-            document.getElementById('distance').innerText = distance ? `${distance.toFixed(2)} km` : 'N/A';
-        } else {
-            console.error('API response does not have the expected structure');
+                const entry = responseBody[currentIndex];
+
+                // Ensure the entry is not undefined and the expected fields are available
+                if (entry) {
+                    const totalPower = entry.power !== undefined ? entry.power : 0;
+                    const totalEnergyInKJ = entry.energy !== undefined ? entry.energy: 0;
+                    const totalCalories = entry.calories_burned !== undefined ? entry.calories_burned : 0;
+                    const totalDistanceInKM = entry.distance_traveled !== undefined ? entry.distance_traveled: 0;
+
+                    // Display values on the cards
+                    document.getElementById('power').innerText = totalPower !== 0 ? `${totalPower.toFixed(2)}W` : 'N/A';
+                    document.getElementById('energy').innerText = totalEnergyInKJ !== 0 ? `${totalEnergyInKJ.toFixed(2)} J` : 'N/A';
+                    document.getElementById('calories').innerText = totalCalories !== 0 ? `${totalCalories.toFixed(6)} cal` : 'N/A';
+                    document.getElementById('distance').innerText = totalDistanceInKM !== 0 ? `${(totalDistanceInKM).toFixed(3)} km` : 'N/A';
+                } else {
+                    console.log(`Entry ${currentIndex} is undefined`);
+                }
+
+                // Increment index to show next entry
+                currentIndex++;
+            }, 7000); // Update every 2 seconds
         }
     } catch (error) {
         console.error('Error fetching data for cards:', error);
     }
 };
+
 
 // Initialize data and populate the dashboard
 const initializeDashboard = () => {
@@ -374,6 +420,7 @@ const initializeDashboard = () => {
 const updateCharts = (timeRange) => {
     generateCharts(timeRange);
 };
+
 
 // Event listener for fetch data button click
 document.getElementById('fetchDataBtn').addEventListener('click', () => {
