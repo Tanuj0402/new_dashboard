@@ -85,8 +85,14 @@
                     <div class="card-body">
                         <h5 class="card-title"><i class="fas fa-shoe-prints"></i> Distance</h5>
                         <p class="dynamic-number" id="distance">0</p>
+
+                        
                     </div>
                 </div>
+                <!-- Button to fetch data -->
+                <button class="btn btn-primary w-100 mb-2" id="fetchDataBtn">Start</button>
+                <!-- Button to reset card values to 0 -->
+                <button class="btn btn-secondary w-100" id="resetDataBtn">Stop</button>
             </div>
 
             <!-- Charts and Table -->
@@ -244,7 +250,6 @@ const generateRandomData = (count, type) => {
     return data;
 };
 
-
 // Populate tables dynamically
 const populateTable = (tableId, data, columns) => {
     const tableBody = document.getElementById(tableId);
@@ -340,10 +345,10 @@ const fetchCardData = async () => {
             const { power, energy, calories, distance } = responseBody[0];
 
             // Update card values
-            document.getElementById('power').innerText = power ? power.toFixed(2) : 'N/A';
-            document.getElementById('energy').innerText = energy ? energy.toFixed(2) : 'N/A';
-            document.getElementById('calories').innerText = calories ? calories.toFixed(2) : 'N/A';
-            document.getElementById('distance').innerText = distance ? distance.toFixed(2) : 'N/A';
+            document.getElementById('power').innerText = power ? `${power.toFixed(2)} W` : 'N/A';
+            document.getElementById('energy').innerText = energy ? `${energy.toFixed(2)} KJ` : 'N/A';
+            document.getElementById('calories').innerText = calories ? `${calories.toFixed(2)} Kcal` : 'N/A';
+            document.getElementById('distance').innerText = distance ? `${distance.toFixed(2)} km` : 'N/A';
         } else {
             console.error('API response does not have the expected structure');
         }
@@ -363,7 +368,6 @@ const initializeDashboard = () => {
     populateTable('yearly-table', yearlyData, ['month', 'calories', 'power', 'duration']);
 
     generateCharts('weekly');
-    fetchCardData(); // Fetch and update card values
 };
 
 // Event listener for tab changes
@@ -371,11 +375,24 @@ const updateCharts = (timeRange) => {
     generateCharts(timeRange);
 };
 
+// Event listener for fetch data button click
+document.getElementById('fetchDataBtn').addEventListener('click', () => {
+    fetchCardData();
+    generateCharts('weekly');
+    populateTable('weekly-table', generateRandomData(7, 'weekly'), ['day', 'activity', 'calories', 'duration']);
+});
+
+// Event listener for reset data button click
+document.getElementById('resetDataBtn').addEventListener('click', () => {
+    document.getElementById('power').innerText = '0';
+    document.getElementById('energy').innerText = '0';
+    document.getElementById('calories').innerText = '0';
+    document.getElementById('distance').innerText = '0';
+});
+
 // Initialize the dashboard when the page loads
 document.addEventListener('DOMContentLoaded', initializeDashboard);
 
-    
-
-</script>
+    </script>
 </body> 
 </html>
